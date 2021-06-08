@@ -154,6 +154,7 @@ def _initialize_distributed():
     args = get_args()
 
     device_count = torch.cuda.device_count()
+    print(f"{device_count} GPUs per node")
     if torch.distributed.is_initialized():
 
         if args.rank == 0:
