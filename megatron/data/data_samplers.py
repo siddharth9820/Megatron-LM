@@ -22,6 +22,39 @@ from megatron import get_args
 from megatron import mpu
 
 
+def build_pretraining_data_loader_myelin(dataset, args, consumed_samples=0):
+    """Buld dataloader given an input dataset."""
+
+    if dataset is None:
+        return None
+    
+    # Megatron sampler
+    if args.dataloader_type == 'single':
+        batch_sampler = MegatronPretrainingSampler(
+            total_samples=len(dataset),
+            consumed_samples=consumed_samples,
+            micro_batch_size=args.micro_batch_size,
+            data_parallel_rank=0,
+            data_parallel_size=1)
+    elif args.dataloader_type == 'cyclic':
+        batch_sampler = MegatronPretrainingRandomSampler(
+            total_samples=len(dataset),
+            consumed_samples=consumed_samples,
+            micro_batch_size=args.micro_batch_size,
+            data_parallel_rank=0,
+            data_parallel_size=1)
+    else:
+        raise Exception('{} dataloader type is not supported.'.format(
+                args.dataloader_type))
+
+    # Torch dataloader.
+    return torch.utils.data.DataLoader(dataset,
+                                       batch_sampler=batch_sampler,
+                                       num_workers=args.num_workers,
+                                       pin_memory=True)
+
+
+
 def build_pretraining_data_loader(dataset, consumed_samples):
     """Buld dataloader given an input dataset."""
 
