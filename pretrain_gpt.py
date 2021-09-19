@@ -27,6 +27,10 @@ from megatron.model import GPTModel
 from megatron.training import pretrain
 from megatron.utils import get_ltor_masks_and_position_ids
 from megatron.utils import average_losses_across_data_parallel_group
+import mpi4py
+from mpi4py import MPI
+comm = MPI.COMM_WORLD
+
 
 def model_provider(pre_process=True, post_process=True):
     """Build the model."""
@@ -121,5 +125,14 @@ def train_valid_test_datasets_provider(train_val_test_num_samples):
 
 if __name__ == "__main__":
 
-    pretrain(train_valid_test_datasets_provider, model_provider, forward_step,
+    try:
+        pretrain(train_valid_test_datasets_provider, model_provider, forward_step,
              args_defaults={'tokenizer_type': 'GPT2BPETokenizer'})
+
+        MPI.COMM_WORLD.Barrier()
+        MPI.COMM_WORLD.Abort()
+    except RuntimeError as e:
+        print(e)
+        if 'out of memory' in str(e):
+            print("OOM error | exiting...")
+        MPI.COMM_WORLD.Abort()
