@@ -22,7 +22,7 @@ from megatron import get_args
 from megatron import mpu
 
 
-def build_pretraining_data_loader_myelin(dataset, args, consumed_samples=0):
+def build_pretraining_data_loader_myelin(dataset, args, consumed_samples=0, dp_rank=0, dp_size=1):
     """Buld dataloader given an input dataset."""
 
     if dataset is None:
@@ -33,16 +33,16 @@ def build_pretraining_data_loader_myelin(dataset, args, consumed_samples=0):
         batch_sampler = MegatronPretrainingSampler(
             total_samples=len(dataset),
             consumed_samples=consumed_samples,
-            micro_batch_size=args.micro_batch_size,
-            data_parallel_rank=0,
-            data_parallel_size=1)
+            micro_batch_size=args.global_batch_size,
+            data_parallel_rank=dp_rank,
+            data_parallel_size=dp_size)
     elif args.dataloader_type == 'cyclic':
         batch_sampler = MegatronPretrainingRandomSampler(
             total_samples=len(dataset),
             consumed_samples=consumed_samples,
-            micro_batch_size=args.micro_batch_size,
-            data_parallel_rank=0,
-            data_parallel_size=1)
+            micro_batch_size=args.global_batch_size,
+            data_parallel_rank=dp_rank,
+            data_parallel_size=dp_size)
     else:
         raise Exception('{} dataloader type is not supported.'.format(
                 args.dataloader_type))
