@@ -533,7 +533,6 @@ class ParallelTransformerLayer(MegatronModule):
 
 class ParallelTransformer(MegatronModule):
     """Transformer class."""
-
     def __init__(self, args, layer_type=LayerType.encoder,
                  self_attn_mask_type=AttnMaskType.padding,
                  embeddings=None, pre_process=True, post_process=True):
@@ -554,8 +553,8 @@ class ParallelTransformer(MegatronModule):
         #assert args.num_layers % mpu.get_pipeline_model_parallel_world_size() == 0, \
         #    'num_layers must be divisible by pipeline_model_parallel_size'
         
-        mp_rank = args.mp_rank
-        mp_world_size = args.mp_world_size
+        # mp_rank = args.mp_rank
+        # mp_world_size = args.mp_world_size
         #assert args.num_layers % mp_world_size == 0
         #self.num_layers = args.num_layers // mp_world_size 
         self.num_layers = args.num_layers
@@ -590,7 +589,7 @@ class ParallelTransformer(MegatronModule):
              #   (mpu.get_pipeline_model_parallel_rank() * self.num_layers)
         #else:
             # Each stage gets a contiguous set of layers.
-        offset = mp_rank * self.num_layers
+        offset = 0
 
         self.layers = torch.nn.ModuleList(
             [build_layer(i + 1 + offset) for i in range(self.num_layers)])
