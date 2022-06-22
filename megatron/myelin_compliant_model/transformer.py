@@ -559,7 +559,8 @@ class ParallelTransformer(MegatronModule):
         #self.num_layers = args.num_layers // mp_world_size 
         self.num_layers = args.num_layers
         self.embeddings = embeddings
-
+        self.dummy = torch.cuda.FloatTensor([1,])
+        self.dummy.requires_grad = True
 
         # Transformer layers.
         def build_layer(layer_number):
@@ -626,7 +627,7 @@ class ParallelTransformer(MegatronModule):
         while l < self.num_layers:
             hidden_states = checkpoint.checkpoint(
                 custom(l, l + self.checkpoint_num_layers),
-                hidden_states, attention_mask, encoder_output, enc_dec_attn_mask)
+                hidden_states, attention_mask, encoder_output, enc_dec_attn_mask, self.dummy)
             l += self.checkpoint_num_layers
 
         return hidden_states
