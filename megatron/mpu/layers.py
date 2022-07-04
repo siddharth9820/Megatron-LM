@@ -138,7 +138,7 @@ class VocabParallelEmbedding(torch.nn.Module):
     """
 
     def __init__(self, num_embeddings, embedding_dim,
-                 init_method=init.xavier_normal_):
+                 init_method=init.xavier_normal_, custom_mpu=None):
         super(VocabParallelEmbedding, self).__init__()
         # Keep the input dimensions.
         self.num_embeddings = num_embeddings
@@ -150,30 +150,29 @@ class VocabParallelEmbedding(torch.nn.Module):
         self.scale_grad_by_freq = False
         self.sparse = False
         self._weight = None
-        self.tensor_model_parallel_size = get_tensor_model_parallel_world_size()
+        self.tensor_model_parallel_size = custom_mpu.get_tensor_model_parallel_world_size()
         # Divide the weight matrix along the vocaburaly dimension.
         self.vocab_start_index, self.vocab_end_index = \
             VocabUtility.vocab_range_from_global_vocab_size(
-                self.num_embeddings, get_tensor_model_parallel_rank(),
+                self.num_embeddings, custom_mpu.get_tensor_model_parallel_rank(),
                 self.tensor_model_parallel_size)
         self.num_embeddings_per_partition = self.vocab_end_index - \
             self.vocab_start_index
-
+        self.custom_mpu = custom_mpu
         # Allocate weights and initialize.
-        args = get_args()
-        if args.use_cpu_initialization:
-            self.weight = Parameter(torch.empty(
+        #if args.use_cpu_initialization:
+        #    self.weight = Parameter(torch.empty(
+        #        self.num_embeddings_per_partition, self.embedding_dim,
+        #        dtype=args.params_dtype))
+        #    _initialize_affine_weight_cpu(
+        #        self.weight, self.num_embeddings, self.embedding_dim,
+        #        self.num_embeddings_per_partition, 0, init_method)
+        #else:
+        self.weight = Parameter(torch.empty(
                 self.num_embeddings_per_partition, self.embedding_dim,
-                dtype=args.params_dtype))
-            _initialize_affine_weight_cpu(
-                self.weight, self.num_embeddings, self.embedding_dim,
-                self.num_embeddings_per_partition, 0, init_method)
-        else:
-            self.weight = Parameter(torch.empty(
-                self.num_embeddings_per_partition, self.embedding_dim,
-                device=torch.cuda.current_device(), dtype=args.params_dtype))
-            _initialize_affine_weight_gpu(self.weight, init_method,
-                                          partition_dim=0, stride=1)
+                ))
+        #    _initialize_affine_weight_gpu(self.weight, init_method,
+                                          #partition_dim=0, stride=1)
 
     def forward(self, input_):
         if self.tensor_model_parallel_size > 1:
@@ -194,7 +193,7 @@ class VocabParallelEmbedding(torch.nn.Module):
         if self.tensor_model_parallel_size > 1:
             output_parallel[input_mask, :] = 0.0
         # Reduce across all the model parallel GPUs.
-        output = reduce_from_tensor_model_parallel_region(output_parallel)
+        output = reduce_from_tensor_model_parallel_region(output_parallel, self.custom_mpu)
         return output
 
 

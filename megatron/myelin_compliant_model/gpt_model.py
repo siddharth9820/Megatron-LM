@@ -31,7 +31,7 @@ from .utils import scaled_init_method_normal
 def post_language_model_processing(lm_output, labels, logit_weights,
                                    get_key_value, parallel_output,
                                    forward_method_parallel_output,
-                                   fp16_lm_cross_entropy):
+                                   fp16_lm_cross_entropy, custom_mpu):
     if get_key_value:
         lm_output, presents = lm_output
 
@@ -41,7 +41,8 @@ def post_language_model_processing(lm_output, labels, logit_weights,
     output = parallel_lm_logits(
         lm_output,
         logit_weights,
-        parallel_output)
+        parallel_output,
+        custom_mpu=custom_mpu)
 
     if get_key_value:
         output = [output, presents]
@@ -51,9 +52,9 @@ def post_language_model_processing(lm_output, labels, logit_weights,
     else:
         if fp16_lm_cross_entropy:
             assert output.dtype == torch.half
-            loss = mpu.vocab_parallel_cross_entropy(output, labels)
+            loss = mpu.vocab_parallel_cross_entropy(output, labels, custom_mpu)
         else:
-            loss = mpu.vocab_parallel_cross_entropy(output.float(), labels)
+            loss = mpu.vocab_parallel_cross_entropy(output.float(), labels, custom_mpu)
         return loss
 
 
