@@ -20,6 +20,7 @@ import torch
 
 from .utils import ensure_divisibility
 
+from axonn import axonn as ax
 
 # Intra-layer model parallel group that the current rank belongs to.
 _TENSOR_MODEL_PARALLEL_GROUP = None
@@ -186,6 +187,8 @@ def get_model_parallel_group():
 
 def get_tensor_model_parallel_group():
     """Get the tensor model parallel group the caller rank belongs to."""
+    return ax.comm_handle.outer_intra_layer_parallel_group
+
     assert _TENSOR_MODEL_PARALLEL_GROUP is not None, \
         'intra_layer_model parallel group is not initialized'
     return _TENSOR_MODEL_PARALLEL_GROUP
@@ -226,6 +229,11 @@ def set_pipeline_model_parallel_world_size(world_size):
 
 def get_tensor_model_parallel_world_size():
     """Return world size for the tensor model parallel group."""
+
+    #from axonn import axonn as ax
+    #return ax.config.G_intra_r
+    return torch.distributed.get_world_size(group=get_tensor_model_parallel_group())
+    
     global _MPU_TENSOR_MODEL_PARALLEL_WORLD_SIZE
     if _MPU_TENSOR_MODEL_PARALLEL_WORLD_SIZE is not None:
         return _MPU_TENSOR_MODEL_PARALLEL_WORLD_SIZE
@@ -253,7 +261,9 @@ def set_pipeline_model_parallel_rank(rank):
 
 
 def get_tensor_model_parallel_rank():
-    """Return my rank for the tensor model parallel group."""
+    """Return my rank for the tensor model parallel group.""" 
+    return torch.distributed.get_rank(group=get_tensor_model_parallel_group())
+
     global _MPU_TENSOR_MODEL_PARALLEL_RANK
     if _MPU_TENSOR_MODEL_PARALLEL_RANK is not None:
         return _MPU_TENSOR_MODEL_PARALLEL_RANK

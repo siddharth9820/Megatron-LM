@@ -126,6 +126,7 @@ def _initialize_affine_weight_cpu(weight, output_size, input_size,
     return None
 
 
+
 class VocabParallelEmbedding(torch.nn.Module):
     """Embedding parallelized in the vocabulary dimension.
 
@@ -160,7 +161,16 @@ class VocabParallelEmbedding(torch.nn.Module):
             self.vocab_start_index
 
         # Allocate weights and initialize.
-        args = get_args()
+        #args = get_args()
+        
+        self.weight = Parameter(torch.empty(
+                self.num_embeddings_per_partition, self.embedding_dim,
+                ))
+        
+        ## BYypassing for now
+        init_method(self.weight)
+        return
+
         if args.use_cpu_initialization:
             self.weight = Parameter(torch.empty(
                 self.num_embeddings_per_partition, self.embedding_dim,

@@ -28,6 +28,8 @@ from megatron.data.dataset_utils import get_train_valid_test_split_
 from megatron.data.indexed_dataset import make_dataset as make_indexed_dataset
 
 
+from axonn import axonn as ax
+
 def build_train_valid_test_datasets(data_prefix, data_impl, splits_string,
                                     train_valid_test_num_samples,
                                     seq_length, seed, skip_warmup):
@@ -296,12 +298,13 @@ def _build_index_mappings(name, data_prefix, documents, sizes,
     # This should be a barrier but nccl barrier assumes
     # device_index=rank which is not the case for model
     # parallel case
-    #counts = torch.cuda.LongTensor([1])
-    #torch.distributed.all_reduce(counts, group=mpu.get_data_parallel_group())
-    #torch.distributed.all_reduce(counts, group=mpu.get_pipeline_model_parallel_group())
-    #assert counts[0].item() == (
-    #    torch.distributed.get_world_size() //
-    #    torch.distributed.get_world_size(group=mpu.get_tensor_model_parallel_group()))
+    counts = torch.cuda.LongTensor([1])
+    data_parallel_group = ax.comm_handle.coll_nccl_comm
+    tensor_parallel_world_size = 1
+    print("only works with TP = 1")
+    torch.distributed.all_reduce(counts)
+    assert counts[0].item() == (
+        torch.distributed.get_world_size() // tensor_parallel_world_size)
 
     # Load mappings.
     start_time = time.time()
